@@ -5,7 +5,7 @@ import { useAuth } from "@/context/AuthContext";
 import api from "@/lib/api";
 import Link from "next/link";
 import { ShieldCheck, Loader2, Mail, Lock, AlertTriangle, Eye, EyeOff, ArrowLeft } from "lucide-react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 
 /* ── Animated network dots canvas ── */
 function NetworkCanvas() {
@@ -83,13 +83,15 @@ export default function Login() {
   const [isAdminMode, setIsAdminMode] = useState(false);
   const { user, login } = useAuth();
   const router = useRouter();
-  const searchParams = useSearchParams();
 
-  // Show any OAuth error passed back in the URL
+  // Handle search params safely for OAuth errors
   useEffect(() => {
-    const oauthError = searchParams.get("error");
-    if (oauthError) setError(decodeURIComponent(oauthError));
-  }, [searchParams]);
+    if (typeof window !== 'undefined') {
+      const params = new URLSearchParams(window.location.search);
+      const oauthError = params.get("error");
+      if (oauthError) setError(decodeURIComponent(oauthError));
+    }
+  }, []);
 
   useEffect(() => {
     if (user) router.push("/");

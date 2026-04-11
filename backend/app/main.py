@@ -124,245 +124,245 @@ def home():
 
 
 # ═══════════════════════════════════════════════════════════════
-# OAUTH HELPERS
+# OAUTH HELPERS - DISABLED (OAuth callback feature removed)
 # ═══════════════════════════════════════════════════════════════
 
-def _upsert_oauth_user(email: str, username: str, provider: str) -> dict:
-    """Find or create a user that signed in via OAuth. Returns user dict."""
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("SELECT * FROM user WHERE email = ?", (email,))
-    user = cursor.fetchone()
-    if not user:
-        # Auto-register: no password (OAuth users never set one)
-        cursor.execute(
-            "INSERT INTO user (username, password_hash, role, email) VALUES (?, ?, ?, ?)",
-            (username, "", "user", email)
-        )
-        conn.commit()
-        cursor.execute("SELECT * FROM user WHERE email = ?", (email,))
-        user = cursor.fetchone()
-    conn.close()
-    return {
-        "email": user["email"],
-        "role": user["role"],
-        "username": user["username"],
-    }
-
-
-def _oauth_success_redirect(user_data: dict) -> RedirectResponse:
-    """Issue a JWT and redirect to the frontend /auth/callback page."""
-    token = create_token(user_data)
-    import urllib.parse
-    params = urllib.parse.urlencode({
-        "token": token,
-        "email": user_data["email"],
-        "role": user_data["role"],
-        "username": user_data["username"],
-    })
-    return RedirectResponse(url=f"{FRONTEND_URL}/auth/callback?{params}")
-
-
-def _oauth_error_redirect(msg: str) -> RedirectResponse:
-    import urllib.parse
-    return RedirectResponse(url=f"{FRONTEND_URL}/login?error={urllib.parse.quote(msg)}")
-
-
-# ═══════════════════════════════════════════════════════════════
-# GOOGLE OAUTH
-# ═══════════════════════════════════════════════════════════════
-
-GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
-GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
-GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
-GOOGLE_REDIRECT_URI = "http://localhost:8000/auth/google/callback"
-
-@app.get("/auth/google")
-def auth_google():
-    if not GOOGLE_CLIENT_ID:
-        return _oauth_error_redirect("Google OAuth not configured. Please set GOOGLE_CLIENT_ID in .env")
-    import urllib.parse
-    params = urllib.parse.urlencode({
-        "client_id": GOOGLE_CLIENT_ID,
-        "redirect_uri": GOOGLE_REDIRECT_URI,
-        "response_type": "code",
-        "scope": "openid email profile",
-        "access_type": "offline",
-        "prompt": "select_account",
-    })
-    return RedirectResponse(url=f"{GOOGLE_AUTH_URL}?{params}")
-
-
-@app.get("/auth/google/callback")
-async def auth_google_callback(code: str = None, error: str = None):
-    if error or not code:
-        return _oauth_error_redirect(error or "Google login cancelled")
-    try:
-        async with httpx.AsyncClient() as client:
-            # Exchange code for tokens
-            token_resp = await client.post(GOOGLE_TOKEN_URL, data={
-                "code": code,
-                "client_id": GOOGLE_CLIENT_ID,
-                "client_secret": GOOGLE_CLIENT_SECRET,
-                "redirect_uri": GOOGLE_REDIRECT_URI,
-                "grant_type": "authorization_code",
-            })
-            token_resp.raise_for_status()
-            access_token = token_resp.json()["access_token"]
-
-            # Fetch user info
-            user_resp = await client.get(
-                GOOGLE_USERINFO_URL,
-                headers={"Authorization": f"Bearer {access_token}"}
-            )
-            user_resp.raise_for_status()
-            info = user_resp.json()
-
-        email = info.get("email", "")
-        name  = info.get("name") or email.split("@")[0]
-        if not email:
-            return _oauth_error_redirect("Google did not return an email address")
-
-        user_data = _upsert_oauth_user(email, name, "google")
-        return _oauth_success_redirect(user_data)
-    except Exception as e:
-        return _oauth_error_redirect(f"Google login failed: {str(e)}")
+# def _upsert_oauth_user(email: str, username: str, provider: str) -> dict:
+#     """Find or create a user that signed in via OAuth. Returns user dict."""
+#     conn = get_connection()
+#     cursor = conn.cursor()
+#     cursor.execute("SELECT * FROM user WHERE email = ?", (email,))
+#     user = cursor.fetchone()
+#     if not user:
+#         # Auto-register: no password (OAuth users never set one)
+#         cursor.execute(
+#             "INSERT INTO user (username, password_hash, role, email) VALUES (?, ?, ?, ?)",
+#             (username, "", "user", email)
+#         )
+#         conn.commit()
+#         cursor.execute("SELECT * FROM user WHERE email = ?", (email,))
+#         user = cursor.fetchone()
+#     conn.close()
+#     return {
+#         "email": user["email"],
+#         "role": user["role"],
+#         "username": user["username"],
+#     }
+#
+#
+# def _oauth_success_redirect(user_data: dict) -> RedirectResponse:
+#     """Issue a JWT and redirect to the frontend /auth/callback page."""
+#     token = create_token(user_data)
+#     import urllib.parse
+#     params = urllib.parse.urlencode({
+#         "token": token,
+#         "email": user_data["email"],
+#         "role": user_data["role"],
+#         "username": user_data["username"],
+#     })
+#     return RedirectResponse(url=f"{FRONTEND_URL}/auth/callback?{params}")
+#
+#
+# def _oauth_error_redirect(msg: str) -> RedirectResponse:
+#     import urllib.parse
+#     return RedirectResponse(url=f"{FRONTEND_URL}/login?error={urllib.parse.quote(msg)}")
 
 
 # ═══════════════════════════════════════════════════════════════
-# GITHUB OAUTH
+# GOOGLE OAUTH - DISABLED (OAuth callback feature removed)
 # ═══════════════════════════════════════════════════════════════
 
-GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
-GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
-GITHUB_USER_URL = "https://api.github.com/user"
-GITHUB_EMAIL_URL = "https://api.github.com/user/emails"
-GITHUB_REDIRECT_URI = "http://localhost:8000/auth/github/callback"
-
-@app.get("/auth/github")
-def auth_github():
-    if not GITHUB_CLIENT_ID:
-        return _oauth_error_redirect("GitHub OAuth not configured. Please set GITHUB_CLIENT_ID in .env")
-    import urllib.parse
-    params = urllib.parse.urlencode({
-        "client_id": GITHUB_CLIENT_ID,
-        "redirect_uri": GITHUB_REDIRECT_URI,
-        "scope": "read:user user:email",
-    })
-    return RedirectResponse(url=f"{GITHUB_AUTH_URL}?{params}")
-
-
-@app.get("/auth/github/callback")
-async def auth_github_callback(code: str = None, error: str = None):
-    if error or not code:
-        return _oauth_error_redirect(error or "GitHub login cancelled")
-    try:
-        async with httpx.AsyncClient() as client:
-            # Exchange code for access token
-            token_resp = await client.post(
-                GITHUB_TOKEN_URL,
-                data={
-                    "client_id": GITHUB_CLIENT_ID,
-                    "client_secret": GITHUB_CLIENT_SECRET,
-                    "code": code,
-                    "redirect_uri": GITHUB_REDIRECT_URI,
-                },
-                headers={"Accept": "application/json"},
-            )
-            token_resp.raise_for_status()
-            access_token = token_resp.json().get("access_token", "")
-            if not access_token:
-                return _oauth_error_redirect("GitHub did not return an access token")
-
-            auth_header = {"Authorization": f"Bearer {access_token}"}
-
-            # Fetch user profile
-            user_resp = await client.get(GITHUB_USER_URL, headers=auth_header)
-            user_resp.raise_for_status()
-            user_info = user_resp.json()
-
-            # Fetch primary email (may be private)
-            email = user_info.get("email")
-            if not email:
-                email_resp = await client.get(GITHUB_EMAIL_URL, headers=auth_header)
-                email_resp.raise_for_status()
-                emails = email_resp.json()
-                primary = next((e for e in emails if e.get("primary") and e.get("verified")), None)
-                email = primary["email"] if primary else (emails[0]["email"] if emails else None)
-
-        if not email:
-            return _oauth_error_redirect("GitHub did not return an email address")
-
-        username = user_info.get("login") or email.split("@")[0]
-        user_data = _upsert_oauth_user(email, username, "github")
-        return _oauth_success_redirect(user_data)
-    except Exception as e:
-        return _oauth_error_redirect(f"GitHub login failed: {str(e)}")
+# GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth"
+# GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token"
+# GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v3/userinfo"
+# GOOGLE_REDIRECT_URI = "http://localhost:8000/auth/google/callback"
+#
+# @app.get("/auth/google")
+# def auth_google():
+#     if not GOOGLE_CLIENT_ID:
+#         return _oauth_error_redirect("Google OAuth not configured. Please set GOOGLE_CLIENT_ID in .env")
+#     import urllib.parse
+#     params = urllib.parse.urlencode({
+#         "client_id": GOOGLE_CLIENT_ID,
+#         "redirect_uri": GOOGLE_REDIRECT_URI,
+#         "response_type": "code",
+#         "scope": "openid email profile",
+#         "access_type": "offline",
+#         "prompt": "select_account",
+#     })
+#     return RedirectResponse(url=f"{GOOGLE_AUTH_URL}?{params}")
+#
+#
+# @app.get("/auth/google/callback")
+# async def auth_google_callback(code: str = None, error: str = None):
+#     if error or not code:
+#         return _oauth_error_redirect(error or "Google login cancelled")
+#     try:
+#         async with httpx.AsyncClient() as client:
+#             # Exchange code for tokens
+#             token_resp = await client.post(GOOGLE_TOKEN_URL, data={
+#                 "code": code,
+#                 "client_id": GOOGLE_CLIENT_ID,
+#                 "client_secret": GOOGLE_CLIENT_SECRET,
+#                 "redirect_uri": GOOGLE_REDIRECT_URI,
+#                 "grant_type": "authorization_code",
+#             })
+#             token_resp.raise_for_status()
+#             access_token = token_resp.json()["access_token"]
+#
+#             # Fetch user info
+#             user_resp = await client.get(
+#                 GOOGLE_USERINFO_URL,
+#                 headers={"Authorization": f"Bearer {access_token}"}
+#             )
+#             user_resp.raise_for_status()
+#             info = user_resp.json()
+#
+#         email = info.get("email", "")
+#         name  = info.get("name") or email.split("@")[0]
+#         if not email:
+#             return _oauth_error_redirect("Google did not return an email address")
+#
+#         user_data = _upsert_oauth_user(email, name, "google")
+#         return _oauth_success_redirect(user_data)
+#     except Exception as e:
+#         return _oauth_error_redirect(f"Google login failed: {str(e)}")
 
 
 # ═══════════════════════════════════════════════════════════════
-# LINKEDIN OAUTH
+# GITHUB OAUTH - DISABLED (OAuth callback feature removed)
 # ═══════════════════════════════════════════════════════════════
 
-LINKEDIN_AUTH_URL = "https://www.linkedin.com/oauth/v2/authorization"
-LINKEDIN_TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
-LINKEDIN_USER_URL = "https://api.linkedin.com/v2/userinfo"
-LINKEDIN_REDIRECT_URI = "http://localhost:8000/auth/linkedin/callback"
+# GITHUB_AUTH_URL = "https://github.com/login/oauth/authorize"
+# GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token"
+# GITHUB_USER_URL = "https://api.github.com/user"
+# GITHUB_EMAIL_URL = "https://api.github.com/user/emails"
+# GITHUB_REDIRECT_URI = "http://localhost:8000/auth/github/callback"
+#
+# @app.get("/auth/github")
+# def auth_github():
+#     if not GITHUB_CLIENT_ID:
+#         return _oauth_error_redirect("GitHub OAuth not configured. Please set GITHUB_CLIENT_ID in .env")
+#     import urllib.parse
+#     params = urllib.parse.urlencode({
+#         "client_id": GITHUB_CLIENT_ID,
+#         "redirect_uri": GITHUB_REDIRECT_URI,
+#         "scope": "read:user user:email",
+#     })
+#     return RedirectResponse(url=f"{GITHUB_AUTH_URL}?{params}")
+#
+#
+# @app.get("/auth/github/callback")
+# async def auth_github_callback(code: str = None, error: str = None):
+#     if error or not code:
+#         return _oauth_error_redirect(error or "GitHub login cancelled")
+#     try:
+#         async with httpx.AsyncClient() as client:
+#             # Exchange code for access token
+#             token_resp = await client.post(
+#                 GITHUB_TOKEN_URL,
+#                 data={
+#                     "client_id": GITHUB_CLIENT_ID,
+#                     "client_secret": GITHUB_CLIENT_SECRET,
+#                     "code": code,
+#                     "redirect_uri": GITHUB_REDIRECT_URI,
+#                 },
+#                 headers={"Accept": "application/json"},
+#             )
+#             token_resp.raise_for_status()
+#             access_token = token_resp.json().get("access_token", "")
+#             if not access_token:
+#                 return _oauth_error_redirect("GitHub did not return an access token")
+#
+#             auth_header = {"Authorization": f"Bearer {access_token}"}
+#
+#             # Fetch user profile
+#             user_resp = await client.get(GITHUB_USER_URL, headers=auth_header)
+#             user_resp.raise_for_status()
+#             user_info = user_resp.json()
+#
+#             # Fetch primary email (may be private)
+#             email = user_info.get("email")
+#             if not email:
+#                 email_resp = await client.get(GITHUB_EMAIL_URL, headers=auth_header)
+#                 email_resp.raise_for_status()
+#                 emails = email_resp.json()
+#                 primary = next((e for e in emails if e.get("primary") and e.get("verified")), None)
+#                 email = primary["email"] if primary else (emails[0]["email"] if emails else None)
+#
+#         if not email:
+#             return _oauth_error_redirect("GitHub did not return an email address")
+#
+#         username = user_info.get("login") or email.split("@")[0]
+#         user_data = _upsert_oauth_user(email, username, "github")
+#         return _oauth_success_redirect(user_data)
+#     except Exception as e:
+#         return _oauth_error_redirect(f"GitHub login failed: {str(e)}")
 
-@app.get("/auth/linkedin")
-def auth_linkedin():
-    if not LINKEDIN_CLIENT_ID:
-        return _oauth_error_redirect("LinkedIn OAuth not configured. Please set LINKEDIN_CLIENT_ID in .env")
-    import urllib.parse
-    params = urllib.parse.urlencode({
-        "response_type": "code",
-        "client_id": LINKEDIN_CLIENT_ID,
-        "redirect_uri": LINKEDIN_REDIRECT_URI,
-        "scope": "openid profile email",
-    })
-    return RedirectResponse(url=f"{LINKEDIN_AUTH_URL}?{params}")
 
+# ═══════════════════════════════════════════════════════════════
+# LINKEDIN OAUTH - DISABLED (OAuth callback feature removed)
+# ═══════════════════════════════════════════════════════════════
 
-@app.get("/auth/linkedin/callback")
-async def auth_linkedin_callback(code: str = None, error: str = None):
-    if error or not code:
-        return _oauth_error_redirect(error or "LinkedIn login cancelled")
-    try:
-        async with httpx.AsyncClient() as client:
-            # Exchange code for access token
-            token_resp = await client.post(
-                LINKEDIN_TOKEN_URL,
-                data={
-                    "grant_type": "authorization_code",
-                    "code": code,
-                    "redirect_uri": LINKEDIN_REDIRECT_URI,
-                    "client_id": LINKEDIN_CLIENT_ID,
-                    "client_secret": LINKEDIN_CLIENT_SECRET,
-                },
-                headers={"Content-Type": "application/x-www-form-urlencoded"}
-            )
-            token_resp.raise_for_status()
-            access_token = token_resp.json().get("access_token", "")
-            if not access_token:
-                return _oauth_error_redirect("LinkedIn did not return an access token")
-
-            # Fetch user info via OpenID Connect userinfo endpoint
-            user_resp = await client.get(
-                LINKEDIN_USER_URL,
-                headers={"Authorization": f"Bearer {access_token}"}
-            )
-            user_resp.raise_for_status()
-            info = user_resp.json()
-
-        email = info.get("email", "")
-        name  = info.get("name") or info.get("given_name", "") or email.split("@")[0]
-        if not email:
-            return _oauth_error_redirect("LinkedIn did not return an email address")
-
-        user_data = _upsert_oauth_user(email, name, "linkedin")
-        return _oauth_success_redirect(user_data)
-    except Exception as e:
-        return _oauth_error_redirect(f"LinkedIn login failed: {str(e)}")
+# LINKEDIN_AUTH_URL = "https://www.linkedin.com/oauth/v2/authorization"
+# LINKEDIN_TOKEN_URL = "https://www.linkedin.com/oauth/v2/accessToken"
+# LINKEDIN_USER_URL = "https://api.linkedin.com/v2/userinfo"
+# LINKEDIN_REDIRECT_URI = "http://localhost:8000/auth/linkedin/callback"
+#
+# @app.get("/auth/linkedin")
+# def auth_linkedin():
+#     if not LINKEDIN_CLIENT_ID:
+#         return _oauth_error_redirect("LinkedIn OAuth not configured. Please set LINKEDIN_CLIENT_ID in .env")
+#     import urllib.parse
+#     params = urllib.parse.urlencode({
+#         "response_type": "code",
+#         "client_id": LINKEDIN_CLIENT_ID,
+#         "redirect_uri": LINKEDIN_REDIRECT_URI,
+#         "scope": "openid profile email",
+#     })
+#     return RedirectResponse(url=f"{LINKEDIN_AUTH_URL}?{params}")
+#
+#
+# @app.get("/auth/linkedin/callback")
+# async def auth_linkedin_callback(code: str = None, error: str = None):
+#     if error or not code:
+#         return _oauth_error_redirect(error or "LinkedIn login cancelled")
+#     try:
+#         async with httpx.AsyncClient() as client:
+#             # Exchange code for access token
+#             token_resp = await client.post(
+#                 LINKEDIN_TOKEN_URL,
+#                 data={
+#                     "grant_type": "authorization_code",
+#                     "code": code,
+#                     "redirect_uri": LINKEDIN_REDIRECT_URI,
+#                     "client_id": LINKEDIN_CLIENT_ID,
+#                     "client_secret": LINKEDIN_CLIENT_SECRET,
+#                 },
+#                 headers={"Content-Type": "application/x-www-form-urlencoded"}
+#             )
+#             token_resp.raise_for_status()
+#             access_token = token_resp.json().get("access_token", "")
+#             if not access_token:
+#                 return _oauth_error_redirect("LinkedIn did not return an access token")
+#
+#             # Fetch user info via OpenID Connect userinfo endpoint
+#             user_resp = await client.get(
+#                 LINKEDIN_USER_URL,
+#                 headers={"Authorization": f"Bearer {access_token}"}
+#             )
+#             user_resp.raise_for_status()
+#             info = user_resp.json()
+#
+#         email = info.get("email", "")
+#         name  = info.get("name") or info.get("given_name", "") or email.split("@")[0]
+#         if not email:
+#             return _oauth_error_redirect("LinkedIn did not return an email address")
+#
+#         user_data = _upsert_oauth_user(email, name, "linkedin")
+#         return _oauth_success_redirect(user_data)
+#     except Exception as e:
+#         return _oauth_error_redirect(f"LinkedIn login failed: {str(e)}")
 
 
 # ─────────────────────────────────────────
