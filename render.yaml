@@ -9,7 +9,7 @@ services:
     startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0 # Standard Python version for Render
+        value: 3.13.0 # Matches your local environment so libraries download instantly
       - key: GOOGLE_CLIENT_ID
         value: "" # Fill in Render Dashboard if needed
       - key: GOOGLE_CLIENT_SECRET
