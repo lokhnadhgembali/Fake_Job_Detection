@@ -37,8 +37,5 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
-        # This automatically links to the backend created above
-        fromService:
-          type: web
-          name: fake-job-backend
-          property: url
+        # Set this to the backend's URL manually in the Render Dashboard once deployed
+        sync: false
