@@ -1,0 +1,44 @@
+services:
+  # ======== BACKEND SERVICE ========
+  - type: web
+    name: fake-job-backend
+    env: python
+    rootDir: backend
+    buildCommand: pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.0 # Standard Python version for Render
+      - key: GOOGLE_CLIENT_ID
+        value: "" # Fill in Render Dashboard if needed
+      - key: GOOGLE_CLIENT_SECRET
+        value: ""
+      - key: GITHUB_CLIENT_ID
+        value: ""
+      - key: GITHUB_CLIENT_SECRET
+        value: ""
+      - key: FRONTEND_URL
+        value: "" # E.g., https://fake-job-frontend.onrender.com
+      # (Optional) Disk setup for SQLite persistence. 
+      # Since disks are paid on Render, this is commented out by default.
+      # If uncommented, you must add an unmanaged disk via the Dashboard.
+      # disk:
+      #   name: sqlite-data
+      #   mountPath: /data
+        
+  # ======== FRONTEND SERVICE ========
+  - type: web
+    name: fake-job-frontend
+    env: node
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NEXT_PUBLIC_API_URL
+        # This automatically links to the backend created above
+        fromService:
+          type: web
+          name: fake-job-backend
+          property: url
