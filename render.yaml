@@ -29,7 +29,7 @@ services:
         
   # ======== FRONTEND SERVICE ========
   - type: web
-    name: fake-job-frontend
+    name: fake-job-detection
     env: node
     plan: free
     rootDir: frontend
