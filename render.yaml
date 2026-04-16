@@ -39,5 +39,4 @@ services:
       - key: NODE_ENV
         value: production
       - key: NEXT_PUBLIC_API_URL
-        # Set this to the backend's URL manually in the Render Dashboard once deployed
-        sync: false
+        value: https://fake-job-backend-dxb3.onrender.com
