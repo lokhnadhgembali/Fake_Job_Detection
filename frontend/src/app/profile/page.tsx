@@ -53,7 +53,7 @@ export default function ProfilePage() {
         website: res.data.website || "",
       });
       if (res.data.profile_pic) {
-        setPicPreview(`http://localhost:8000${res.data.profile_pic}`);
+        setPicPreview(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${res.data.profile_pic}`);
       }
     } catch {
       setError("Failed to load profile.");
@@ -93,7 +93,7 @@ export default function ProfilePage() {
       const res = await api.post("/profile/picture", formData, {
         headers: { "Content-Type": "multipart/form-data" },
       });
-      setPicPreview(`http://localhost:8000${res.data.profile_pic}`);
+      setPicPreview(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${res.data.profile_pic}`);
       await refreshUser();
       setSuccess("Profile picture updated!");
       setTimeout(() => setSuccess(""), 3000);

@@ -44,7 +44,7 @@ export function Navbar() {
   return (
     <nav className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300
       ${scrolled
-        ? "bg-white/85 dark:bg-slate-900/85 backdrop-blur-xl border-slate-200 dark:border-slate-700 shadow-sm"
+        ? "bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-700 shadow-sm"
         : "bg-white/30 dark:bg-slate-900/30 backdrop-blur-md border-transparent"
       }`}
     >
@@ -118,7 +118,7 @@ export function Navbar() {
                   >
                     {user.profile_pic ? (
                       <img
-                        src={`http://localhost:8000${user.profile_pic}`}
+                        src={`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000'}${user.profile_pic}`}
                         alt={user.username}
                         className="w-full h-full object-cover"
                       />
