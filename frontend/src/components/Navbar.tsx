@@ -42,14 +42,14 @@ export function Navbar() {
   const isActive = (path: string) => pathname === path;
 
   return (
-    <nav className={`fixed top-0 left-0 right-0 z-50 border-b transition-all duration-300
-      ${scrolled
-        ? "bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border-slate-200 dark:border-slate-700 shadow-sm"
-        : "bg-white/30 dark:bg-slate-900/30 backdrop-blur-md border-transparent"
-      }`}
-    >
-      <div className="w-full px-8 lg:px-12">
-        <div className="flex items-center justify-between h-20">
+    <div className={`fixed left-0 right-0 z-50 transition-all duration-500 flex justify-center pointer-events-none ${scrolled ? "top-4 sm:top-6 px-4" : "top-0 px-0"}`}>
+      <nav 
+        className={`w-full transition-all duration-500 flex items-center justify-between pointer-events-auto
+          ${scrolled
+            ? "max-w-5xl bg-white/40 dark:bg-slate-900/40 backdrop-blur-sm border border-slate-200/60 dark:border-slate-700/60 shadow-[0_8px_30px_rgb(0,0,0,0.12)] rounded-full px-6 md:px-8 h-16"
+            : "max-w-none bg-transparent backdrop-blur-none border-b border-transparent px-8 lg:px-12 h-20"
+          }`}
+      >
 
           {/* LEFT: Logo */}
           <Link href="/" className="flex items-center gap-2 group shrink-0">
@@ -169,8 +169,7 @@ export function Navbar() {
             </div>
           </div>
 
-        </div>
-      </div>
-    </nav>
+      </nav>
+    </div>
   );
 }
